@@ -8,7 +8,7 @@ const app = express();
 
 app.use(cors({
     origin: 'http://localhost:3001' // Replace with your frontend URL
-  }));
+}));
 app.use(bodyParser.json());
 
 app.post('/api/evaluate', async (req, res) => {
@@ -27,6 +27,8 @@ app.post('/api/evaluate', async (req, res) => {
 
       if (questionError) throw questionError;
 
+      console.log('Question Data:', questionData);
+
       const is_correct = questionData.correct_answer === user_answer;
 
       const { error: evaluationError } = await supabase
@@ -36,7 +38,8 @@ app.post('/api/evaluate', async (req, res) => {
           question_id: question_id, 
           category_id: questionData.category_id,
           user_answer: user_answer, 
-          is_correct: is_correct
+          is_correct: is_correct,
+          difficulty: questionData.difficulty // Ensure difficulty is inserted
         }]);
 
       if (evaluationError) throw evaluationError;
@@ -67,6 +70,9 @@ async function evaluateUserLevels(user_id) {
 
     if (responsesError) throw responsesError;
 
+    console.log(`Evaluating category ${category_id} for user ${user_id}`);
+    console.log('Responses:', responses);
+
     let correctCounts = { beginner: 0, intermediate: 0, advanced: 0, expert: 0 };
     let totalCounts = { beginner: 0, intermediate: 0, advanced: 0, expert: 0 };
 
@@ -77,6 +83,9 @@ async function evaluateUserLevels(user_id) {
       }
     }
 
+    console.log('Total counts:', totalCounts);
+    console.log('Correct counts:', correctCounts);
+
     let difficultyLevel = 'beginner';
     if (totalCounts.expert > 0 && correctCounts.expert / totalCounts.expert > 0.7) {
       difficultyLevel = 'expert';
@@ -85,6 +94,8 @@ async function evaluateUserLevels(user_id) {
     } else if (totalCounts.intermediate > 0 && correctCounts.intermediate / totalCounts.intermediate > 0.5) {
       difficultyLevel = 'intermediate';
     }
+
+    console.log(`Assigned difficulty level for category ${category_id}: ${difficultyLevel}`);
 
     const { error: userLevelError } = await supabase
       .from('user_difficulty_levels')
