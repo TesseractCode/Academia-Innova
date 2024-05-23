@@ -23,7 +23,7 @@ const LoginForm = () => {
       console.error("Error logging in:", error);
     } else {
       console.log("User logged in:", data.user);
-      router.push('/'); // Redirect to home page after successful login
+      router.push('/profile'); // Redirect to home page after successful login
     }
   };
 

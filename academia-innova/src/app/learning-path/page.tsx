@@ -1,25 +1,16 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Label } from "../../components/ui/label";
-import { Input } from "../../components/ui/input";
-import { cn } from "../../utils/cn";
+import { cn } from "../utils/cn";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { IconBrandGithub, IconBrandGoogle, IconBrandOnlyfans } from "@tabler/icons-react";
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../supabaseClient';
 
 const Category: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const title = searchParams.get('title');
   const [rank, setRank] = useState('loading...');
+  const [chatgptResponse, setChatgptResponse] = useState('Loading...');
 
-  const handlePath = () => {
-    if (title) {
-      const encodedTitle = encodeURIComponent(title).replace(/%20/g, '+');
-      router.push(`/learning-path?title=${encodedTitle}`);
-    }
-  };
-  
 
   useEffect(() => {
     if (!title) {
@@ -28,10 +19,7 @@ const Category: React.FC = () => {
     }
 
     const fetchRank = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('Error fetching session:', error);
@@ -39,19 +27,20 @@ const Category: React.FC = () => {
         return;
       }
 
+      const session = data?.session;
       if (session) {
         const user = session.user;
-        const { data, error } = await supabase
+        const { data: rankData, error: rankError } = await supabase
           .from('user_difficulty_levels')
           .select('difficulty_level')
           .eq('user_id', user.id)
           .eq('category_id', getCategoryID(title));
 
-        if (error) {
-          console.error('Error fetching difficulty level:', error);
+        if (rankError) {
+          console.error('Error fetching difficulty level:', rankError);
           setRank('Error fetching rank');
-        } else if (data.length > 0) {
-          setRank(data[0].difficulty_level);
+        } else if (rankData.length > 0) {
+          setRank(rankData[0].difficulty_level);
         } else {
           setRank('No rank found');
         }
@@ -63,24 +52,52 @@ const Category: React.FC = () => {
     fetchRank();
   }, [title]);
 
+  useEffect(() => {
+    const fetchChatgptResponse = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
+
+        if (title && session?.user) {
+          const response = await fetch('http://localhost:3000/api/chatgpt-response', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: session.user.id, category_id: getCategoryID(title) }),
+          });
+
+          if (!response.ok) {
+            // console.log(session.user.id)
+            // console.log(getCategoryID(title))
+            throw new Error('Failed to fetch ChatGPT response');
+          }
+
+          const data = await response.json();
+          setChatgptResponse(data.response);
+        }
+      } catch (error) {
+        console.error('Error fetching ChatGPT response:', error);
+        setChatgptResponse('Error fetching ChatGPT response');
+      }
+    };
+
+    if (title) {
+      fetchChatgptResponse();
+    }
+  }, [title]);
+
   return (
     <div className="space-y-10 max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
       <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200">
         {title}
       </h2>
-      <h2
-        className="flex justify-center items-center bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-      >
+      <h2 className="font-bold text-lg text-neutral-800 dark:text-neutral-200">
         Current rank: {rank}
       </h2>
-      <button
-        className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-        type="submit"
-        onClick={handlePath}
-      >
-        Learning Path
-        <BottomGradient />
-      </button>
+      <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <p>{chatgptResponse}</p>
+      </div>
     </div>
   );
 };
@@ -112,7 +129,6 @@ const LabelInputContainer: React.FC<LabelInputContainerProps> = ({
   );
 };
 
-// Helper function to map category titles to category IDs
 const getCategoryID = (title: string): number | null => {
   const categories: { [key: string]: number } = {
     'Programming Languages': 1,

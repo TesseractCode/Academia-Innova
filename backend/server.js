@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors'); // Import the cors package
 const { supabase } = require('./supabaseClient');
+const {create_response} = require('./open-ai')
 require('dotenv').config();
 
 const app = express();
@@ -11,11 +12,23 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 
+const categories = {
+  1: 'Programming Languages',
+  2: 'Data Structures and Algorithms',
+  3: 'Database Management',
+  4: 'Web Development',
+  5: 'Software Design and Architecture',
+  6: 'Version Control Systems',
+  7: 'Testing and Quality Assurance',
+  8: 'DevOps and CI/CD',
+  9: 'Security',
+  10: 'Mobile Development',
+};
+
 app.post('/api/evaluate', async (req, res) => {
   const { user_id, responses } = req.body;
 
   try {
-    // Store user responses
     for (const response of responses) {
       const { question_id, user_answer } = response;
 
@@ -105,7 +118,73 @@ async function evaluateUserLevels(user_id) {
   }
 }
 
+async function getFailedQuestions(user_id, category_id) {
+  try {
+    const { data: incorrectQuestions, error: incorrectQuestionsError } = await supabase
+      .from('evaluations')
+      .select('question_id')
+      .eq('user_id', user_id)
+      .eq('category_id', category_id)
+      .eq('is_correct', false);
+
+    if (incorrectQuestionsError) throw incorrectQuestionsError;
+
+    if (incorrectQuestions.length === 0) {
+      return 'No failed questions for this category.';
+    }
+
+    const questionIds = incorrectQuestions.map(q => q.question_id);
+
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('question_text')
+      .in('id', questionIds);
+
+    if (questionsError) throw questionsError;
+
+    let result = 'You failed the following questions:\n';
+    questions.forEach((question, index) => {
+      result += `${index + 1}. ${question.question_text}\n`;
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching failed questions:', error);
+    throw new Error('Error fetching failed questions');
+  }
+}
+
+async function getChatGPTResponse(user_id, category_id) {
+  const category_name = categories[category_id];
+  const prompt = `Generate a detailed explanation for user with ID ${user_id} about ${category_name}. Provide learning materials, links to resources, and videos.`;
+  const fq = await getFailedQuestions()
+  console.log(fq)
+  try {
+    const chatgptResponse = await create_response(prompt);
+    return chatgptResponse;
+  } catch (error) {
+    console.error('Error generating ChatGPT response:', error);
+    throw error;
+  }
+}
+
+
+app.post('/api/chatgpt-response', async (req, res) => {
+  // console.log("bbb")
+  const { user_id, category_id } = req.body;
+
+  try {
+    const chatgptResponse = await getChatGPTResponse(user_id, category_id);
+    res.status(200).json({ response: chatgptResponse });
+  } catch (error) {
+    console.error('Error getting ChatGPT response:', error);
+    res.status(500).send('Error getting ChatGPT response');
+  }
+});
+
+
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
