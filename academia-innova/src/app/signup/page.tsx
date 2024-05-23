@@ -1,49 +1,63 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from 'next/navigation'; // Import useRouter from Next.js
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { cn } from "../utils/cn";
 import { supabase } from "../supabaseClient";
 
-const SignupFormDemo = () => {
+const SignupFormDemo: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState(''); // State for success message
+  const router = useRouter(); // Initialize useRouter
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMessage(''); // Clear any previous message
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error) {
-      console.error("Error signing up:", error);
-      return;
-    }
-
-    const user = data.user;
-
-    if (user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: user.id,
-            first_name: firstName,
-            last_name: lastName,
-          },
-        ]);
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-      } else {
-        console.log("Profile created successfully");
-        setMessage('Signup successful! Please check your email to confirm your registration.');
+      if (error) {
+        console.error("Error signing up:", error.message);
+        setMessage(`Error signing up: ${error.message}`);
+        return;
       }
+
+      const user = data.user;
+
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: user.id,
+              first_name: firstName,
+              last_name: lastName,
+            },
+          ]);
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError.message);
+          setMessage(`Error creating profile: ${profileError.message}`);
+        } else {
+          console.log("Profile created successfully");
+          setMessage('Signup successful! Redirecting to placement test...');
+
+          setTimeout(() => {
+            router.push('/placement-test'); // Redirect to placement test page after successful signup
+          }, 1000); // Wait for 1 second before redirecting
+        }
+      }
+    } catch (error: any) {
+      console.error("Unexpected error:", error.message);
+      setMessage(`Unexpected error: ${error.message}`);
     }
   };
 
@@ -54,7 +68,7 @@ const SignupFormDemo = () => {
       </h2>
 
       {message && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div className={`px-4 py-3 rounded relative mb-4 ${message.includes('Error') ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`} role="alert">
           <span className="block sm:inline">{message}</span>
         </div>
       )}
@@ -97,7 +111,7 @@ const SignupFormDemo = () => {
 
 export default SignupFormDemo;
 
-const BottomGradient = () => {
+const BottomGradient: React.FC = () => {
   return (
     <>
       <span className="group-hover/btn:opacity-100 block transition duration-500 opacity-0 absolute h-px w-full -bottom-px inset-x-0 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
@@ -106,13 +120,7 @@ const BottomGradient = () => {
   );
 };
 
-const LabelInputContainer = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
+const LabelInputContainer: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
   return (
     <div className={cn("flex flex-col space-y-2 w-full", className)}>
       {children}
