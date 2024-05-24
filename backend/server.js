@@ -56,6 +56,8 @@ const PLACEMENT_SCORES = {
   '1011': 12,
   '0111': 13,
 
+};
+
 const categories = {
   1: 'Programming Languages',
   2: 'Data Structures and Algorithms',
@@ -370,7 +372,6 @@ function DifficultyLevel(score) {
 
 async function getFailedQuestions(user_id, category_id) {
   try {
-    console.log(user_id)
     const { data: incorrectQuestions, error: incorrectQuestionsError } = await supabase
       .from('evaluations')
       .select('question_id')
@@ -388,7 +389,7 @@ async function getFailedQuestions(user_id, category_id) {
 
     const { data: questions, error: questionsError } = await supabase
       .from('questions')
-      .select('question_text')
+      .select('question_text, difficulty')
       .in('id', questionIds);
 
     if (questionsError) throw questionsError;
@@ -398,48 +399,49 @@ async function getFailedQuestions(user_id, category_id) {
       result += `${index + 1}. ${question.question_text}\n`;
     });
 
-    return result;
+    return result || 'No failed questions for this category at the specified difficulty level.';
   } catch (error) {
     console.error('Error fetching failed questions:', error);
     throw new Error('Error fetching failed questions');
   }
 }
 
-async function getChatGPTResponse(user_id, category_id, rank) {
-  const category_name = categories[category_id];
-  // const prompt = `Generate a detailed explanation for user with ID ${user_id} about ${category_name}. Provide learning materials, links to resources, and videos.`;
-  // console.log(user_id)
-  const fq = await getFailedQuestions(user_id,category_id)
-  // console.log(fq)
 
-  const  prompt = [
+
+async function getChatGPTResponse(user_id, category_id) {
+  const category_name = categories[category_id];
+  
+  // Fetch user's difficulty level and failed questions
+  const { data: userLevelData, error: userLevelError } = await supabase
+    .from('user_difficulty_levels')
+    .select('difficulty_level')
+    .eq('user_id', user_id)
+    .eq('category_id', category_id)
+    .single();
+  
+  if (userLevelError) {
+    throw new Error('Error fetching user difficulty level');
+  }
+  
+  const user_level = userLevelData.difficulty_level;
+
+  const fq = await getFailedQuestions(user_id, category_id);
+
+  // Constructing the dynamic prompt
+  const prompt = [
     {
       "role": "system",
-      "content": [
-        {
-          "type": "text",
-          "text": `Your job is to provide helpful learning resources for programming concepts in the form of links to websites and youtube links. Max 2 links per concept, 4 concepts.  Don't write other text `
-        }
-      ]
+      "content": `Your task is to provide ${user_level} learning topics for ${category_name} programming concepts. You should tailor the suggestions to EXACTLY the user's difficulty level: ${user_level}. Do not provide introductory or basic topics if the level is advanced. Do not suggest topics for other categories. Provide 4 topics and a link for each one. Don't write other text or instructions.`
     },
     {
       "role": "user",
-      "content": [
-        {
-          "type": "text",
-          "text": `Teach ${category_name}. 
-                   I failed these quiz questions ${fq}. Include these topics, and if possible extra topics.
-                   IMPORTANT: my level is ${rank} give resources according to this rank. `
-        }
-      ]
+      "content": `Teach ${category_name}. IMPORTANT: my level is ${user_level}. Suggest topics according to this rank and to this category. I failed these quiz questions: ${fq}. If there are no failed questions, just don't take them into account. Include these topics, and if possible extra topics. Don't suggest topics for other levels or categories.`
     }
   ];
 
-
   try {
     const chatgptResponse = await create_response(prompt);
-    console.log("gata")
-    console.log(chatgptResponse)
+    console.log(chatgptResponse);
     return chatgptResponse;
   } catch (error) {
     console.error('Error generating ChatGPT response:', error);
@@ -447,9 +449,7 @@ async function getChatGPTResponse(user_id, category_id, rank) {
   }
 }
 
-
 app.post('/api/chatgpt-response', async (req, res) => {
-  // console.log("bbb")
   const { user_id, category_id } = req.body;
 
   try {
@@ -460,6 +460,8 @@ app.post('/api/chatgpt-response', async (req, res) => {
     res.status(500).send('Error getting ChatGPT response');
   }
 });
+
+
 
 
 const port = 3000;

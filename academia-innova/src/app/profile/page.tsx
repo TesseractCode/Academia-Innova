@@ -4,15 +4,11 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { useRouter } from 'next/navigation';
 import { cn } from "../utils/cn";
-import { IconBrandGithub, IconBrandGoogle, IconBrandOnlyfans } from "@tabler/icons-react";
 import { supabase } from '../supabaseClient'; // Ensure this path matches your project structure
 
 const Profile: React.FC = () => {
   const router = useRouter();
 
-  const handleStartTest = () => {
-    router.push('/placement-test')
-  }
 
   const handleCheckCategories = () => {
     router.push('/categories');
