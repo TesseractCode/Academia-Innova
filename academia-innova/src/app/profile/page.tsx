@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,30 @@ import { supabase } from '../supabaseClient'; // Ensure this path matches your p
 
 const Profile: React.FC = () => {
   const router = useRouter();
+  const [profile, setProfile] = useState({ firstName: '', lastName: '' });
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = userData?.user;
+
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+        } else {
+          setProfile({ firstName: data.first_name, lastName: data.last_name });
+        }
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleCheckCategories = () => {
     router.push('/categories');
@@ -30,6 +53,12 @@ const Profile: React.FC = () => {
 
   return (
     <div className="space-y-10 max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-white">
+          Hello, {profile.firstName} {profile.lastName}
+        </h1>
+      </div>
+
       <button
         className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
         type="submit"

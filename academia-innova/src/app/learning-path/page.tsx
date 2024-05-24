@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm';
 const Category: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const title = searchParams.get('title');
+  const title = searchParams ? searchParams.get('title') : null;
   const [rank, setRank] = useState('loading...');
   const [chatgptResponse, setChatgptResponse] = useState('Loading...');
 
@@ -86,14 +86,14 @@ const Category: React.FC = () => {
   }, [rank]);
 
   return (
-    <div className="space-y-10 max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
-      <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200">
+    <div className="space-y-10 max-w-2xl w-full mx-auto rounded-none md:rounded-2xl p-6 md:p-10 shadow-input bg-white dark:bg-black">
+      <h2 className="font-bold text-2xl text-neutral-800 dark:text-neutral-200">
         {title}
       </h2>
-      <h2 className="font-bold text-lg text-neutral-800 dark:text-neutral-200">
+      <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200">
         Current rank: {rank}
       </h2>
-      <div className="mt-4 p-4 bg-zinc-800 text-gray-200 rounded-lg">
+      <div className="mt-6 p-6 bg-zinc-800 text-gray-200 rounded-lg">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{

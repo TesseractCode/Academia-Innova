@@ -1,7 +1,10 @@
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
+
 
 const Home = () => {
-  return <h1 className="text-3xl font-bold underline">Hello world!</h1>;
+  const router = useRouter();
+  router.push('/login');
 }
 
 export default Home;

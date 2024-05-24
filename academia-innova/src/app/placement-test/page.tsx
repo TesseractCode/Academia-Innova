@@ -128,8 +128,6 @@ const PlacementTest: React.FC = () => {
           {questions.map((question) => (
             <div key={question.id} className="p-4 bg-neutral-200 dark:bg-neutral-900 rounded-lg shadow-sm">
               <p className="text-black dark:text-white mb-2 font-semibold">{question.question_text}</p>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">Correct Answer: {question.correct_answer}</p>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">Category: {question.category_id}</p>
 
               {question.other_options.map((option, index) => (
                 <label key={index} className="block mb-2">
