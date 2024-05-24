@@ -99,12 +99,13 @@ app.post('/api/evaluate', async (req, res) => {
           category_id: questionData.category_id,
           user_answer: user_answer, 
           is_correct: is_correct,
-          difficulty: questionData.difficulty
+          difficulty: questionData.difficulty // Ensure difficulty is inserted
         }]);
 
       if (evaluationError) throw evaluationError;
     }
 
+    // Evaluate user levels
     await evaluateUserLevels(user_id, true);
     res.status(200).send('Evaluation completed and levels assigned');
   } catch (error) {
@@ -426,7 +427,7 @@ async function getChatGPTResponse(user_id, category_id) {
 
   const fq = await getFailedQuestions(user_id, category_id);
 
-  // Constructing the dynamic prompt
+  // Constructing the dynamic 
   const prompt = [
     {
       "role": "system",
