@@ -10,6 +10,10 @@ import { supabase } from '../supabaseClient'; // Ensure this path matches your p
 const Profile: React.FC = () => {
   const router = useRouter();
 
+  const handleStartTest = () => {
+    router.push('/placement-test')
+  }
+
   const handleCheckCategories = () => {
     router.push('/categories');
   };
