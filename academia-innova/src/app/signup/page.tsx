@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from 'next/navigation'; // Import useRouter from Next.js
+import { useRouter } from 'next/navigation';
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { cn } from "../utils/cn";
@@ -11,12 +11,12 @@ const SignupFormDemo: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState(''); // State for success message
-  const router = useRouter(); // Initialize useRouter
+  const [message, setMessage] = useState(''); 
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage(''); // Clear any previous message
+    setMessage('');
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -51,8 +51,8 @@ const SignupFormDemo: React.FC = () => {
           setMessage('Signup successful! Redirecting to placement test...');
 
           setTimeout(() => {
-            router.push('/placement-test'); // Redirect to placement test page after successful signup
-          }, 1000); // Wait for 1 second before redirecting
+            router.push('/placement-test');
+          }, 1000);
         }
       }
     } catch (error: any) {
