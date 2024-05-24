@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { cn } from "../utils/cn";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../supabaseClient';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const Category: React.FC = () => {
   const searchParams = useSearchParams();
@@ -10,7 +12,6 @@ const Category: React.FC = () => {
   const title = searchParams.get('title');
   const [rank, setRank] = useState('loading...');
   const [chatgptResponse, setChatgptResponse] = useState('Loading...');
-
 
   useEffect(() => {
     if (!title) {
@@ -57,19 +58,16 @@ const Category: React.FC = () => {
       try {
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
-
         if (title && session?.user) {
           const response = await fetch('http://localhost:3000/api/chatgpt-response', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ user_id: session.user.id, category_id: getCategoryID(title) }),
+            body: JSON.stringify({ user_id: session.user.id, category_id: getCategoryID(title), rank: rank }),
           });
 
           if (!response.ok) {
-            // console.log(session.user.id)
-            // console.log(getCategoryID(title))
             throw new Error('Failed to fetch ChatGPT response');
           }
 
@@ -82,10 +80,10 @@ const Category: React.FC = () => {
       }
     };
 
-    if (title) {
+    if (rank !== 'loading...') {
       fetchChatgptResponse();
     }
-  }, [title]);
+  }, [rank]);
 
   return (
     <div className="space-y-10 max-w-md w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
@@ -95,8 +93,15 @@ const Category: React.FC = () => {
       <h2 className="font-bold text-lg text-neutral-800 dark:text-neutral-200">
         Current rank: {rank}
       </h2>
-      <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <p>{chatgptResponse}</p>
+      <div className="mt-4 p-4 bg-zinc-800 text-gray-200 rounded-lg">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            a: ({ node, ...props }) => <a className="text-blue-500 hover:underline" {...props} />,
+          }}
+        >
+          {chatgptResponse}
+        </ReactMarkdown>
       </div>
     </div>
   );

@@ -120,6 +120,7 @@ async function evaluateUserLevels(user_id) {
 
 async function getFailedQuestions(user_id, category_id) {
   try {
+    console.log(user_id)
     const { data: incorrectQuestions, error: incorrectQuestionsError } = await supabase
       .from('evaluations')
       .select('question_id')
@@ -142,7 +143,7 @@ async function getFailedQuestions(user_id, category_id) {
 
     if (questionsError) throw questionsError;
 
-    let result = 'You failed the following questions:\n';
+    let result = '';
     questions.forEach((question, index) => {
       result += `${index + 1}. ${question.question_text}\n`;
     });
@@ -154,13 +155,41 @@ async function getFailedQuestions(user_id, category_id) {
   }
 }
 
-async function getChatGPTResponse(user_id, category_id) {
+async function getChatGPTResponse(user_id, category_id, rank) {
   const category_name = categories[category_id];
-  const prompt = `Generate a detailed explanation for user with ID ${user_id} about ${category_name}. Provide learning materials, links to resources, and videos.`;
-  const fq = await getFailedQuestions()
-  console.log(fq)
+  // const prompt = `Generate a detailed explanation for user with ID ${user_id} about ${category_name}. Provide learning materials, links to resources, and videos.`;
+  // console.log(user_id)
+  const fq = await getFailedQuestions(user_id,category_id)
+  // console.log(fq)
+
+  const  prompt = [
+    {
+      "role": "system",
+      "content": [
+        {
+          "type": "text",
+          "text": `Your job is to provide helpful learning resources for programming concepts in the form of links to websites and youtube links. Max 2 links per concept, 4 concepts.  Don't write other text `
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": `Teach ${category_name}. 
+                   I failed these quiz questions ${fq}. Include these topics, and if possible extra topics.
+                   IMPORTANT: my level is ${rank} give resources according to this rank. `
+        }
+      ]
+    }
+  ];
+
+
   try {
     const chatgptResponse = await create_response(prompt);
+    console.log("gata")
+    console.log(chatgptResponse)
     return chatgptResponse;
   } catch (error) {
     console.error('Error generating ChatGPT response:', error);

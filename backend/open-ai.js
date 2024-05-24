@@ -10,18 +10,19 @@ async function create_response(prompt, history=[]) {
     // console.log("aaa")
     const response = await openai.chat.completions.create({
         model: "gpt-4o",
-        messages: [
-            {
-              "role": "user",
-              "content": [
-                {
-                  "type": "text",
-                  "text": prompt
-                }
-              ]
+        messages: prompt,
+        // messages: [
+        //     {
+        //       "role": "user",
+        //       "content": [
+        //         {
+        //           "type": "text",
+        //           "text": prompt
+        //         }
+        //       ]
               
-            }
-        ],
+        //     }
+        // ],
         temperature: 1,
         max_tokens: 256,
         top_p: 1,
@@ -41,6 +42,7 @@ async function create_response(prompt, history=[]) {
     //     history: newHistory
     // };
 
+    console.log(response.choices[0].message.content)
     return response.choices[0].message.content;
 }
 
