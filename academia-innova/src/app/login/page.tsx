@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from 'next/navigation'; // Import useRouter from next/navigation
+import { useRouter } from 'next/navigation';
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { cn } from "../utils/cn";
@@ -9,7 +9,7 @@ import { supabase } from "../supabaseClient";
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,7 +23,7 @@ const LoginForm = () => {
       console.error("Error logging in:", error);
     } else {
       console.log("User logged in:", data.user);
-      router.push('/profile'); // Redirect to home page after successful login
+      router.push('/profile');
     }
   };
 

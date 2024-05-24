@@ -4,7 +4,7 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { useRouter } from 'next/navigation';
 import { cn } from "../utils/cn";
-import { supabase } from '../supabaseClient'; // Ensure this path matches your project structure
+import { supabase } from '../supabaseClient';
 
 const Profile: React.FC = () => {
   const router = useRouter();

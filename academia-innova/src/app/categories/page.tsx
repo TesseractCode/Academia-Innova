@@ -4,13 +4,8 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { CategoryCards } from "../components/ui/cards";
 import { cn } from "../utils/cn";
-import { IconBrandGithub, IconBrandGoogle, IconBrandOnlyfans } from "@tabler/icons-react";
 
-const SignupFormDemo = () => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("Form submitted");
-  };
+const Categories = () => {
   return (
     <div>
         <CategoryCards/>
@@ -18,7 +13,7 @@ const SignupFormDemo = () => {
   );
 };
 
-export default SignupFormDemo;
+export default Categories;
 
 const BottomGradient = () => {
   return (
