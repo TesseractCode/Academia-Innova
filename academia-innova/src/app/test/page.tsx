@@ -4,7 +4,6 @@ import axios from 'axios';
 import { supabase } from "../supabaseClient";
 import { useRouter } from 'next/navigation';
 
-
 interface Question {
   id: number;
   category_id: number;
@@ -19,10 +18,9 @@ interface Response {
   user_answer: string;
 }
 
-const DIFFICULTY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
-const PlacementTest: React.FC = () => {
+const Test: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
   const [message, setMessage] = useState('');
@@ -30,21 +28,35 @@ const PlacementTest: React.FC = () => {
 
   useEffect(() => {
     const fetchQuestions = async () => {
-      const { data, error } = await supabase.from('questions').select('*');
-      if (error) {
-        console.error("Error fetching questions:", error);
-      } else {
-        const organizedQuestions: Question[] = [];
-        const categories = Array.from(new Set(data.map((q: Question) => q.category_id)));
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = userData?.user;
 
-        categories.forEach(category_id => {
-          DIFFICULTY_LEVELS.forEach(level => {
-            const question = data.find((q: Question) => q.category_id === category_id && q.difficulty === level);
-            if (question) organizedQuestions.push(question);
-          });
-        });
+      if (userError) {
+        console.error("Error fetching user:", userError.message);
+        setMessage('Error fetching user');
+        return;
+      }
 
-        setQuestions(organizedQuestions);
+      if (!user) {
+        console.error("User not authenticated");
+        setMessage('User not authenticated');
+        return;
+      }
+
+      console.log('User ID:', user.id);
+
+      try {
+        const result = await axios.post('http://localhost:3000/api/generate-test', { user_id: user.id });
+        console.log('Backend response:', result);
+
+        if (result.status === 200) {
+          setQuestions(result.data.questions);
+        } else {
+          setMessage('Error generating test.');
+        }
+      } catch (error) {
+        console.error("Error generating test:", error);
+        setMessage('Error generating test.');
       }
     };
 
@@ -53,10 +65,9 @@ const PlacementTest: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMessage('Loading...');
-
 
     console.log('Submitting responses:', responses);
+    setMessage('Loading...');
     
     const { data: userData, error: userError } = await supabase.auth.getUser();
     const user = userData?.user;
@@ -76,21 +87,21 @@ const PlacementTest: React.FC = () => {
     console.log('User ID:', user.id);
 
     try {
-      const result = await axios.post('http://localhost:3000/api/evaluate', { user_id: user.id, responses });
+      const result = await axios.post('http://localhost:3000/api/submit-test', { user_id: user.id, responses });
       console.log('Backend response:', result);
+      
 
       if (result.status === 200) {
-        setMessage('Placement test completed! Your levels have been assigned.');
+        setMessage('Test submitted successfully! Your performance has been recorded.');
         setTimeout(() => {
-          router.push('/profile');
-        }, 1000); 
-
+            router.push('/profile');
+          }, 1000);
       } else {
-        setMessage('Error submitting placement test.');
+        setMessage('Error submitting test.');
       }
     } catch (error) {
-      console.error("Error submitting placement test:", error);
-      setMessage('Error submitting placement test.');
+      console.error("Error submitting test:", error);
+      setMessage('Error submitting test.');
     }
   };
 
@@ -114,7 +125,7 @@ const PlacementTest: React.FC = () => {
   return (
     <div className="max-w-3xl w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
       <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200 text-center mb-6">
-        Placement Test
+        New Test
       </h2>
 
       {message && (
@@ -130,6 +141,8 @@ const PlacementTest: React.FC = () => {
               <p className="text-black dark:text-white mb-2 font-semibold">{question.question_text}</p>
               <p className="text-gray-500 dark:text-gray-400 mb-4">Correct Answer: {question.correct_answer}</p>
               <p className="text-gray-500 dark:text-gray-400 mb-4">Category: {question.category_id}</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Difficulty: {question.difficulty}</p>
+
 
               {question.other_options.map((option, index) => (
                 <label key={index} className="block mb-2">
@@ -158,7 +171,7 @@ const PlacementTest: React.FC = () => {
   );
 };
 
-export default PlacementTest;
+export default Test;
 
 const BottomGradient = () => {
   return (
