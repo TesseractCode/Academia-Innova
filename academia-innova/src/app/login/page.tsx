@@ -9,6 +9,7 @@ import { supabase } from "../supabaseClient";
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -20,6 +21,7 @@ const LoginForm = () => {
     });
 
     if (error) {
+      setErrorMessage("Invalid credentials, please try again.");
       console.error("Error logging in:", error);
     } else {
       console.log("User logged in:", data.user);
@@ -32,6 +34,13 @@ const LoginForm = () => {
       <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200">
         Welcome Back to eLearn
       </h2>
+
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline"> {errorMessage}</span>
+        </div>
+      )}
 
       <form className="my-8" onSubmit={handleSubmit}>
         <LabelInputContainer className="mb-4">
