@@ -204,13 +204,44 @@ app.post('/api/generate-test', async (req, res) => {
     const focusedCategories = [sortedLevels[0].category_id, sortedLevels[1].category_id];
     const otherCategories = sortedLevels.filter(level => !focusedCategories.includes(level.category_id));
 
-    // Fetch questions from the lowest graded categories
     let questions = [];
+
+    // Fetch questions from the lowest graded categories, including up to 2 previously failed questions
     for (const category_id of focusedCategories) {
       const level = difficultyLevels.find(level => level.category_id === category_id);
       const questionDifficulties = getDifficultyRange(level.difficulty_level);
 
       let categoryQuestions = [];
+      let failedQuestions = [];
+
+      // Fetch up to 2 previously failed questions
+      for (const difficulty of questionDifficulties) {
+        const { data: failedQuestionsData, error: failedQuestionsError } = await supabase
+          .from('evaluations')
+          .select('question_id')
+          .eq('user_id', user_id)
+          .eq('category_id', category_id)
+          .eq('is_correct', false)
+          .eq('difficulty', difficulty)
+          .limit(2);
+
+        if (failedQuestionsError) throw failedQuestionsError;
+
+        if (failedQuestionsData.length > 0) {
+          const questionIds = failedQuestionsData.map(q => q.question_id);
+          const { data: questionsData, error: questionsError } = await supabase
+            .from('questions')
+            .select('*')
+            .in('id', questionIds);
+
+          if (questionsError) throw questionsError;
+          failedQuestions = failedQuestions.concat(questionsData);
+        }
+      }
+
+      failedQuestions = failedQuestions.slice(0, 2);
+
+      // Fetch additional questions to make up the total
       for (const difficulty of questionDifficulties) {
         const { data: levelQuestions, error: questionError } = await supabase
           .from('questions')
@@ -222,12 +253,17 @@ app.post('/api/generate-test', async (req, res) => {
         categoryQuestions = categoryQuestions.concat(levelQuestions);
       }
 
+      // Ensure we do not duplicate failed questions
+      const uniqueQuestions = categoryQuestions.filter(
+        q => !failedQuestions.some(fq => fq.id === q.id)
+      );
+
       // Shuffle and limit to between 5 and 8 questions per focused category
       const minQuestions = 5;
       const maxQuestions = 8;
       const numQuestions = Math.floor(Math.random() * (maxQuestions - minQuestions + 1)) + minQuestions;
-      categoryQuestions = categoryQuestions.sort(() => 0.5 - Math.random()).slice(0, numQuestions);
-      questions = questions.concat(categoryQuestions);
+      categoryQuestions = uniqueQuestions.sort(() => 0.5 - Math.random()).slice(0, numQuestions - failedQuestions.length);
+      questions = questions.concat(failedQuestions, categoryQuestions);
     }
 
     // Fetch random questions from the other categories
@@ -297,9 +333,6 @@ app.post('/api/submit-test', async (req, res) => {
       const is_correct = questionData.correct_answer === user_answer;
       const currentDifficultyLevel = questionData.difficulty;
 
-
-      // In the app.post('/api/submit-test', update this part
-
       const { data: userLevelData, error: userLevelError } = await supabase
         .from('user_difficulty_levels')
         .select('*')
@@ -327,9 +360,22 @@ app.post('/api/submit-test', async (req, res) => {
           user_answer: user_answer, 
           is_correct: is_correct,
           difficulty: questionData.difficulty
-      }]);
+        }]);
 
       if (evaluationError) throw evaluationError;
+
+      // Update the existing evaluation if answered correctly this time
+      if (is_correct) {
+        const { error: updateEvaluationError } = await supabase
+          .from('evaluations')
+          .update({ is_correct: true })
+          .eq('user_id', user_id)
+          .eq('question_id', question_id)
+          .eq('category_id', questionData.category_id)
+          .eq('is_correct', false);
+
+        if (updateEvaluationError) throw updateEvaluationError;
+      }
 
       const newScore = userLevelData.score + scoreChange;
       console.log(`Updating score for category ${questionData.category_id}: ${userLevelData.score} -> ${newScore} (change: ${scoreChange})`);

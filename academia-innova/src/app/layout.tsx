@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { BackgroundBeams } from './components/ui/background-beams'; // Adjust the import path as needed
+import { BackgroundBeams } from './components/ui/background-beams'; 
 
 const inter = Inter({ subsets: ["latin"] });
 
