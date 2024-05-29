@@ -97,7 +97,7 @@ const Category: React.FC = () => {
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            a: ({ node, ...props }) => <a className="text-blue-500 hover:underline" {...props} />,
+            a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" {...props} />,
           }}
         >
           {chatgptResponse}

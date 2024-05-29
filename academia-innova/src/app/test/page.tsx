@@ -24,6 +24,7 @@ const Test: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Response[]>([]);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,12 +35,14 @@ const Test: React.FC = () => {
       if (userError) {
         console.error("Error fetching user:", userError.message);
         setMessage('Error fetching user');
+        setLoading(false);
         return;
       }
 
       if (!user) {
         console.error("User not authenticated");
         setMessage('User not authenticated');
+        setLoading(false);
         return;
       }
 
@@ -57,6 +60,8 @@ const Test: React.FC = () => {
       } catch (error) {
         console.error("Error generating test:", error);
         setMessage('Error generating test.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -89,7 +94,6 @@ const Test: React.FC = () => {
     try {
       const result = await axios.post('http://localhost:3000/api/submit-test', { user_id: user.id, responses });
       console.log('Backend response:', result);
-      
 
       if (result.status === 200) {
         setMessage('Test submitted successfully! Your performance has been recorded.');
@@ -125,44 +129,52 @@ const Test: React.FC = () => {
   return (
     <div className="max-w-3xl w-full mx-auto rounded-none md:rounded-2xl p-4 md:p-8 shadow-input bg-white dark:bg-black">
       <h2 className="font-bold text-xl text-neutral-800 dark:text-neutral-200 text-center mb-6">
-        New Test
+        Test
       </h2>
 
-      {message && (
-        <div className={`px-4 py-3 rounded relative mb-4 ${message.includes('Error') ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`} role="alert">
-          <span className="block sm:inline">{message}</span>
+      {loading ? (
+        <div className="text-center text-lg text-neutral-800 dark:text-neutral-200">
+          Loading...
         </div>
-      )}
+      ) : (
+        <>
+          {message && (
+            <div className={`px-4 py-3 rounded relative mb-4 ${message.includes('Error') ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`} role="alert">
+              <span className="block sm:inline">{message}</span>
+            </div>
+          )}
 
-      <form className="space-y-8" onSubmit={handleSubmit}>
-        <div className="overflow-y-auto max-h-[60vh] p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg space-y-6 ">
-          {questions.map((question) => (
-            <div key={question.id} className="p-4 bg-neutral-200 dark:bg-neutral-900 rounded-lg shadow-sm">
-              <p className="text-black dark:text-white mb-2 font-semibold">{question.question_text}</p>
+          <form className="space-y-8" onSubmit={handleSubmit}>
+            <div className="overflow-y-auto max-h-[60vh] p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg space-y-6 ">
+              {questions.map((question) => (
+                <div key={question.id} className="p-4 bg-neutral-200 dark:bg-neutral-900 rounded-lg shadow-sm">
+                  <p className="text-black dark:text-white mb-2 font-semibold">{question.question_text}</p>
 
-              {question.other_options.map((option, index) => (
-                <label key={index} className="block mb-2">
-                  <input
-                    type="radio"
-                    name={`question-${question.id}`}
-                    value={option}
-                    onChange={() => handleChange(question.id, option)}
-                    className="mr-2"
-                  />
-                  <span className="text-black dark:text-white">{option}</span>
-                </label>
+                  {question.other_options.map((option, index) => (
+                    <label key={index} className="block mb-2">
+                      <input
+                        type="radio"
+                        name={`question-${question.id}`}
+                        value={option}
+                        onChange={() => handleChange(question.id, option)}
+                        className="mr-2"
+                      />
+                      <span className="text-black dark:text-white">{option}</span>
+                    </label>
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
-        <button
-          type="submit"
-          className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
-        >
-          Submit Test &rarr;
-          <BottomGradient />
-        </button>
-      </form>
+            <button
+              type="submit"
+              className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
+            >
+              Submit Test &rarr;
+              <BottomGradient />
+            </button>
+          </form>
+        </>
+      )}
     </div>
   );
 };
